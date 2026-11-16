@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -5,6 +6,8 @@ using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.Mono;
 using HarmonyLib;
+
+[assembly: AssemblyVersion("1.0.2.0")]
 
 // Trench War — Sandbox mode
 // Adds a third "SANDBOX" entry to the singleplayer mode picker:
@@ -16,7 +19,7 @@ using HarmonyLib;
 //   * SURRENDER in the pause menu leaves back to the title screen
 //   * career achievements/stats are paused while in sandbox
 
-[BepInPlugin("xano.trenchwar.sandbox", "Trench War Sandbox", "1.0.1")]
+[BepInPlugin("xano.trenchwar.sandbox", "Trench War Sandbox", "1.0.2")]
 public class SandboxPlugin : BaseUnityPlugin
 {
     public static readonly string[] Modes = { "DUEL  1 VS 1", "FREE-FOR-ALL", "SANDBOX" };
@@ -29,8 +32,60 @@ public class SandboxPlugin : BaseUnityPlugin
     private void Awake()
     {
         log = Logger;
-        new Harmony("xano.trenchwar.sandbox").PatchAll();
-        log.LogInfo("Sandbox mod loaded.");
+        var harmony = new Harmony("xano.trenchwar.sandbox");
+        try
+        {
+            // Pass the assembly explicitly rather than zero-arg PatchAll(), which walks
+            // StackTrace.GetFrame(1) and silently patches 0 methods if inlined by Mono JIT.
+            harmony.PatchAll(typeof(SandboxPlugin).Assembly);
+
+            int patched = 0;
+            foreach (var m in harmony.GetPatchedMethods())
+            {
+                patched++;
+                log.LogInfo("Patched: " + m.DeclaringType?.FullName + "." + m.Name);
+            }
+
+            if (patched == 0)
+            {
+                log.LogError("Sandbox mod loaded, but 0 methods were patched!");
+                LogTargetDiagnostics();
+            }
+            else
+            {
+                log.LogInfo("Sandbox mod loaded (v1.0.2, " + patched + " methods patched).");
+            }
+        }
+        catch (Exception ex)
+        {
+            log.LogError("Sandbox mod failed to patch: " + ex);
+            LogTargetDiagnostics();
+        }
+    }
+
+    private static void LogTargetDiagnostics()
+    {
+        if (log == null)
+        {
+            return;
+        }
+        var checks = new (Type type, string name)[]
+        {
+            (typeof(StartMenu), "Single"),
+            (typeof(BattleManager), "StockOf"),
+            (typeof(BattleManager), "StockOfPlayer"),
+            (typeof(Building), "Damage"),
+            (typeof(Building), "Blow"),
+            (typeof(BattleManager), "EndBattle"),
+            (typeof(BattleManager), "PlayerOut"),
+            (typeof(BattleManager), "Surrender"),
+            (typeof(Achievements), "CountsFor"),
+        };
+        foreach (var c in checks)
+        {
+            var found = AccessTools.Method(c.type, c.name);
+            log.LogWarning("Target " + c.type.FullName + "." + c.name + ": " + (found != null ? "FOUND" : "MISSING"));
+        }
     }
 
     private static bool InSandboxBattle()
@@ -98,33 +153,48 @@ public class SandboxPlugin : BaseUnityPlugin
         var modeIndex = AccessTools.Method(typeof(SandboxPlugin), nameof(ModeIndex));
         var setMode = AccessTools.Method(typeof(SandboxPlugin), nameof(SetMode));
 
+        int hitModes = 0;
+        int hitRead = 0;
+        int hitWrite = 0;
+
+        if (soloModes == null || soloFfa == null)
+        {
+            log?.LogError("PatchSingle missing expected fields: SoloModes=" + (soloModes != null) + ", SoloFreeForAll=" + (soloFfa != null));
+        }
+
         for (int i = 0; i < list.Count; i++)
         {
             // 1) use our three-entry label array instead of StartMenu.SoloModes
-            if (list[i].opcode == OpCodes.Ldsfld && list[i].operand is FieldInfo f && f == soloModes)
+            if (soloModes != null && list[i].opcode == OpCodes.Ldsfld && list[i].operand is FieldInfo f && f == soloModes)
             {
                 list[i].operand = modesField;
+                hitModes++;
                 continue;
             }
 
             // 2) "MatchSettings.SoloFreeForAll ? 1 : 0"  ->  ModeIndex()
-            if (list[i].opcode == OpCodes.Ldsfld && list[i].operand is FieldInfo f2 && f2 == soloFfa
-                && i + 1 < list.Count
-                && (list[i + 1].opcode == OpCodes.Brtrue_S || list[i + 1].opcode == OpCodes.Brtrue))
+            if (soloFfa != null && list[i].opcode == OpCodes.Ldsfld && list[i].operand is FieldInfo f2 && f2 == soloFfa
+                && i + 4 < list.Count
+                && (list[i + 1].opcode == OpCodes.Brtrue_S || list[i + 1].opcode == OpCodes.Brtrue
+                    || list[i + 1].opcode == OpCodes.Brfalse_S || list[i + 1].opcode == OpCodes.Brfalse)
+                && (list[i + 2].opcode == OpCodes.Ldc_I4_0 || list[i + 2].opcode == OpCodes.Ldc_I4_1)
+                && (list[i + 3].opcode == OpCodes.Br_S || list[i + 3].opcode == OpCodes.Br)
+                && (list[i + 4].opcode == OpCodes.Ldc_I4_0 || list[i + 4].opcode == OpCodes.Ldc_I4_1))
             {
                 list[i].opcode = OpCodes.Call;
                 list[i].operand = modeIndex;
-                for (int k = 1; k <= 4 && i + k < list.Count; k++)
+                for (int k = 1; k <= 4; k++)
                 {
                     list[i + k].opcode = OpCodes.Nop;
                     list[i + k].operand = null;
                 }
+                hitRead++;
                 i += 4;
                 continue;
             }
 
             // 3) "SoloFreeForAll = (Options(...) == 1)"  ->  SetMode(Options(...))
-            if (list[i].opcode == OpCodes.Stsfld && list[i].operand is FieldInfo f3 && f3 == soloFfa
+            if (soloFfa != null && list[i].opcode == OpCodes.Stsfld && list[i].operand is FieldInfo f3 && f3 == soloFfa
                 && i >= 2 && list[i - 1].opcode == OpCodes.Ceq && list[i - 2].opcode == OpCodes.Ldc_I4_1)
             {
                 list[i].opcode = OpCodes.Call;
@@ -133,9 +203,22 @@ public class SandboxPlugin : BaseUnityPlugin
                 list[i - 1].operand = null;
                 list[i - 2].opcode = OpCodes.Nop;
                 list[i - 2].operand = null;
+                hitWrite++;
                 continue;
             }
         }
+
+        log?.LogInfo($"PatchSingle: modes={hitModes}, read={hitRead}, write={hitWrite} (insns={list.Count})");
+        if (hitModes != 1 || hitRead != 1 || hitWrite != 1)
+        {
+            log?.LogError("PatchSingle did not match expected StartMenu.Single IL! Game build may differ from 2026-11-14.");
+            int limit = Math.Min(list.Count, 45);
+            for (int i = 0; i < limit; i++)
+            {
+                log?.LogWarning($"  Single[{i:D2}] {list[i].opcode} {list[i].operand}");
+            }
+        }
+
         return list;
     }
 
