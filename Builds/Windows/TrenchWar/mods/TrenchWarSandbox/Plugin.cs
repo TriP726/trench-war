@@ -8,13 +8,15 @@ using HarmonyLib;
 
 // Trench War — Sandbox mode
 // Adds a third "SANDBOX" entry to the singleplayer mode picker:
-//   * 6-way free-for-all against bots
+//   * 6-way free-for-all against bots (defaults to 5 bots, adjustable 2..5)
 //   * unlimited resources for the local player
+//   * the local HQ cannot be destroyed (keeps construction & AI targeting working)
 //   * no victory/defeat screen, the battle never ends
 //   * the local player is never eliminated
 //   * SURRENDER in the pause menu leaves back to the title screen
+//   * career achievements/stats are paused while in sandbox
 
-[BepInPlugin("xano.trenchwar.sandbox", "Trench War Sandbox", "1.0.0")]
+[BepInPlugin("xano.trenchwar.sandbox", "Trench War Sandbox", "1.0.1")]
 public class SandboxPlugin : BaseUnityPlugin
 {
     public static readonly string[] Modes = { "DUEL  1 VS 1", "FREE-FOR-ALL", "SANDBOX" };
@@ -31,6 +33,28 @@ public class SandboxPlugin : BaseUnityPlugin
         log.LogInfo("Sandbox mod loaded.");
     }
 
+    private static bool InSandboxBattle()
+    {
+        return Active
+            && !Net.Active
+            && !Net.ViaRelay
+            && !Lobby.InMatch
+            && !Players.Preset
+            && Players.FreeForAll
+            && !Players.IsBot(Players.Local);
+    }
+
+    private static void Refill(Stock stock)
+    {
+        if (stock == null)
+        {
+            return;
+        }
+        stock.fuel = 999999;
+        stock.iron = 999999;
+        stock.food = 999999;
+    }
+
     // ----- menu plumbing (called from the patched StartMenu.Single) -----
 
     public static int ModeIndex()
@@ -44,13 +68,20 @@ public class SandboxPlugin : BaseUnityPlugin
 
     public static void SetMode(int i)
     {
+        bool wasActive = Active;
+        bool wasFfa = MatchSettings.SoloFreeForAll;
+
         Active = i == 2;
         MatchSettings.SoloFreeForAll = i >= 1;
-        if (Active)
+        if (Active && !wasActive)
         {
-            MatchSettings.SoloBots = 5; // fill the remaining seats -> 6 players
+            MatchSettings.SoloBots = 5; // default to 6 players when switching into SANDBOX; user can still adjust 2..5
         }
-        log?.LogInfo("Sandbox " + (Active ? "ON" : "off") + "; solo FFA=" + MatchSettings.SoloFreeForAll + ", bots=" + MatchSettings.SoloBots);
+
+        if (Active != wasActive || MatchSettings.SoloFreeForAll != wasFfa)
+        {
+            log?.LogInfo("Sandbox " + (Active ? "ON" : "off") + "; solo FFA=" + MatchSettings.SoloFreeForAll + ", bots=" + MatchSettings.SoloBots);
+        }
     }
 
     // ----- menu: replace the two-entry mode toggle with three entries -----
@@ -86,6 +117,7 @@ public class SandboxPlugin : BaseUnityPlugin
                 for (int k = 1; k <= 4 && i + k < list.Count; k++)
                 {
                     list[i + k].opcode = OpCodes.Nop;
+                    list[i + k].operand = null;
                 }
                 i += 4;
                 continue;
@@ -98,7 +130,9 @@ public class SandboxPlugin : BaseUnityPlugin
                 list[i].opcode = OpCodes.Call;
                 list[i].operand = setMode;
                 list[i - 1].opcode = OpCodes.Nop;
+                list[i - 1].operand = null;
                 list[i - 2].opcode = OpCodes.Nop;
+                list[i - 2].operand = null;
                 continue;
             }
         }
@@ -111,17 +145,62 @@ public class SandboxPlugin : BaseUnityPlugin
     [HarmonyPostfix]
     private static void FreeStock(Faction f, ref Stock __result)
     {
-        if (!Active || __result == null)
+        if (!InSandboxBattle() || f != Players.Team(Players.Local))
         {
             return;
         }
-        if (f != Players.Team(Players.Local))
+        Refill(__result);
+    }
+
+    [HarmonyPatch(typeof(BattleManager), "StockOfPlayer")]
+    [HarmonyPostfix]
+    private static void FreePlayerStock(int p, ref Stock __result)
+    {
+        if (!InSandboxBattle() || p != Players.Local)
         {
             return;
         }
-        __result.fuel = 999999;
-        __result.iron = 999999;
-        __result.food = 999999;
+        Refill(__result);
+    }
+
+    // ----- protect the local HQ from destruction (keeps building & AI targeting alive) -----
+
+    [HarmonyPatch(typeof(Building), "Damage")]
+    [HarmonyPrefix]
+    private static bool KeepLocalHqAlive(Building __instance, ref float amount)
+    {
+        if (!InSandboxBattle() || __instance == null)
+        {
+            return true;
+        }
+        if (__instance.kind == Building.Kind.HQ && __instance.owner == Players.Local)
+        {
+            if (__instance.Destroyed || amount <= 0f)
+            {
+                return false;
+            }
+            float maxDamage = __instance.Hp - 1f;
+            if (maxDamage <= 0f)
+            {
+                return false;
+            }
+            if (amount > maxDamage)
+            {
+                amount = maxDamage;
+            }
+        }
+        return true;
+    }
+
+    [HarmonyPatch(typeof(Building), "Blow")]
+    [HarmonyPrefix]
+    private static bool PreventLocalHqBlow(Building __instance)
+    {
+        if (!InSandboxBattle() || __instance == null)
+        {
+            return true;
+        }
+        return __instance.kind != Building.Kind.HQ || __instance.owner != Players.Local;
     }
 
     // ----- no victory / defeat: the battle never ends -----
@@ -130,7 +209,7 @@ public class SandboxPlugin : BaseUnityPlugin
     [HarmonyPrefix]
     private static bool NoEndBattle()
     {
-        return !Active;
+        return !InSandboxBattle();
     }
 
     // ----- the local player is never eliminated -----
@@ -139,7 +218,7 @@ public class SandboxPlugin : BaseUnityPlugin
     [HarmonyPrefix]
     private static bool NoEliminate(int p)
     {
-        return !Active || p != Players.Local;
+        return !InSandboxBattle() || p != Players.Local;
     }
 
     // ----- SURRENDER leaves to the title screen instead of ending the run -----
@@ -148,16 +227,36 @@ public class SandboxPlugin : BaseUnityPlugin
     [HarmonyPrefix]
     private static bool SandboxSurrender()
     {
-        if (!Active)
+        if (!InSandboxBattle())
         {
             return true;
         }
         if (!leaving)
         {
             leaving = true;
-            BattleManager.BackToTitle();
-            leaving = false;
+            try
+            {
+                BattleManager.BackToTitle();
+            }
+            finally
+            {
+                leaving = false;
+            }
         }
+        return false;
+    }
+
+    // ----- do not pollute career profile achievements/stats in sandbox -----
+
+    [HarmonyPatch(typeof(Achievements), "CountsFor")]
+    [HarmonyPrefix]
+    private static bool SkipAchievementsInSandbox(ref bool __result)
+    {
+        if (!InSandboxBattle())
+        {
+            return true;
+        }
+        __result = false;
         return false;
     }
 }
