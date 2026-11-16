@@ -17,6 +17,12 @@ lorries rolling and watch every shell tear the ground apart.
 - **Download on itch.io:** https://xanomusik.itch.io/trench-war
 - Unzip and run `TrenchWar.exe` — no install needed.
 
+**Or run it straight from this repo (unzipped build, v1.0.0):**
+
+Clone the repo and run `Builds/Windows/TrenchWar/TrenchWar.exe` — no zip needed.
+The unzipped build (186 files, 160 MB) lives in [`Builds/Windows/TrenchWar/`](Builds/Windows/TrenchWar/).
+All files are under 50 MB, so plain `git clone` works (no Git LFS install needed).
+
 > **Windows warning?** On the first start Windows SmartScreen may say
 > "Windows protected your PC". It does that for every program without a paid
 > code signing certificate, which is normal for small indie games and does
