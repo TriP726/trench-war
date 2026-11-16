@@ -71,10 +71,12 @@ No need to touch the other mods.
 
 **TrenchWarSandbox** (`mods/TrenchWarSandbox/Plugin.cs`)
 - `[HarmonyTranspiler]` on `StartMenu.Single` → adds the third `SANDBOX` mode entry.
-- `[HarmonyPostfix]` on `BattleManager.StockOf` → refills the local player's stock.
+- `[HarmonyPostfix]` on `BattleManager.StockOf` and `BattleManager.StockOfPlayer` → refills the local player's stock.
+- `[HarmonyPrefix]` on `Building.Damage` and `Building.Blow` → prevents the local HQ from being destroyed.
 - `[HarmonyPrefix]` on `BattleManager.EndBattle` → never ends the battle.
 - `[HarmonyPrefix]` on `BattleManager.PlayerOut` → never eliminates you.
 - `[HarmonyPrefix]` on `BattleManager.Surrender` → reroutes to the title screen.
+- `[HarmonyPrefix]` on `Achievements.CountsFor` → pauses profile achievement/stat recording during sandbox.
 
 ---
 
