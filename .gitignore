@@ -1,0 +1,80 @@
+# OS / editor / temp — safe to ignore everywhere
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*~
+*.swp
+*.swo
+*.tmp
+*.temp
+*.log
+
+# IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+.vs/
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.suo
+*.ntvs*
+*.njsproj
+
+# Unity — intermediate / generated (final release zips are tracked via LFS, see .gitattributes)
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+.collab/
+sysinfo.txt
+crashlytics-build.properties
+
+# Unreal — intermediate / generated
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+*.sdf
+*.opensdf
+*.opendb
+*.ipch
+*.aps
+*.nupkg
+*.snupkg
+*.received.txt
+*.localVersionObjects.txt
+*.localCopyAfterCompile.txt
+*.localCopyBeforeCompile.txt
+
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+*.translation
+
+# General build intermediates — folders only.
+# NOTE: Do NOT ignore *.exe/*.zip/*.pak/*.dll etc. here — those are
+# final builds tracked with Git LFS (see .gitattributes) or published
+# via GitHub Releases. Ignoring them here would block `git add`.
+node_modules/
+dist/
+build/
+out/
+target/
+bin/
+obj/
+
+# If you publish builds ONLY via GitHub Releases (recommended for builds),
+# uncomment the next two lines to keep local build folders out of git:
+# Builds/
+# Releases/
