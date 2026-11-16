@@ -7,7 +7,7 @@ using BepInEx.Logging;
 using BepInEx.Unity.Mono;
 using HarmonyLib;
 
-[assembly: AssemblyVersion("1.0.2.0")]
+[assembly: AssemblyVersion("1.0.3.0")]
 
 // Trench War — Sandbox mode
 // Adds a third "SANDBOX" entry to the singleplayer mode picker:
@@ -19,7 +19,8 @@ using HarmonyLib;
 //   * SURRENDER in the pause menu leaves back to the title screen
 //   * career achievements/stats are paused while in sandbox
 
-[BepInPlugin("xano.trenchwar.sandbox", "Trench War Sandbox", "1.0.2")]
+[BepInPlugin("xano.trenchwar.sandbox", "Trench War Sandbox", "1.0.3")]
+[HarmonyPatch]
 public class SandboxPlugin : BaseUnityPlugin
 {
     public static readonly string[] Modes = { "DUEL  1 VS 1", "FREE-FOR-ALL", "SANDBOX" };
@@ -35,9 +36,7 @@ public class SandboxPlugin : BaseUnityPlugin
         var harmony = new Harmony("xano.trenchwar.sandbox");
         try
         {
-            // Pass the assembly explicitly rather than zero-arg PatchAll(), which walks
-            // StackTrace.GetFrame(1) and silently patches 0 methods if inlined by Mono JIT.
-            harmony.PatchAll(typeof(SandboxPlugin).Assembly);
+            harmony.PatchAll(typeof(SandboxPlugin));
 
             int patched = 0;
             foreach (var m in harmony.GetPatchedMethods())
@@ -53,7 +52,7 @@ public class SandboxPlugin : BaseUnityPlugin
             }
             else
             {
-                log.LogInfo("Sandbox mod loaded (v1.0.2, " + patched + " methods patched).");
+                log.LogInfo("Sandbox mod loaded (v1.0.3, " + patched + " methods patched).");
             }
         }
         catch (Exception ex)
