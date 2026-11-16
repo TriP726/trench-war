@@ -20,6 +20,7 @@ TrenchWar/
     plugins/
       MortarRangeMod.dll   <- mod 1
       TrenchWarSandbox.dll <- mod 2
+      PerformanceMod.dll   <- mod 3
       (drop future mods here)
     config/                <- per-mod .cfg files (created on first run)
     LogOutput.log
@@ -77,6 +78,19 @@ No need to touch the other mods.
 - `[HarmonyPrefix]` on `BattleManager.PlayerOut` → never eliminates you.
 - `[HarmonyPrefix]` on `BattleManager.Surrender` → reroutes to the title screen.
 - `[HarmonyPrefix]` on `Achievements.CountsFor` → pauses profile achievement/stat recording during sandbox.
+
+**PerformanceMod** (`mods/PerformanceMod/Plugin.cs`)
+- `[HarmonyPostfix]` on `BattleManager.Keys` → adds configurable hotkeys (`F3` / `F9`) for `Perf.Toggle()` and `Perf.ForceLog` CSV capture.
+- `[HarmonyTranspiler]` on `VoxelTerrain.LateUpdateInner` → caches all 8 `Action<int>` / `Func<int, bool>` delegates per terrain instance.
+- `[HarmonyPrefix]` on `BattleManager.TickBotsInner` → removes per-frame closure + `Action` allocations when ticking bot sides.
+- `[HarmonyPrefix]` on `Soldier.RefreshThreats` (offline only) → zero-allocation in-place top-5 enemy threat selection.
+- `[HarmonyTranspiler]` (`Priority.Low`) on `Soldier.FindMortarTarget` (offline only) → queries `BattleManager.Near` spatial buckets sized to `range * 1.5f` (with `MortarRangeMod` interop).
+- `[HarmonyPrefix]` on `FrontLine.BuildMesh` → skips rebuilding frontline meshes when `line[]` moved less than `FrontLineMoveThreshold`.
+- `[HarmonyPrefix]` / `[HarmonyTranspiler]` on `FogOfWar.UpdateInner` & `FogOfWar.Recompute` → configurable interval and dirty-pixel tracking to skip empty `SetPixels32` + `Apply` GPU uploads.
+- `[HarmonyPrefix]` / `[HarmonyTranspiler]` on `VoxelTerrain.ApplyColJobs` → caps finished `MeshCollider.sharedMesh` swaps per frame.
+- `[HarmonyPrefix]` on `CommandUI.DrawCommand`, `BattleManager.DrawHud`, `FirstTips.Draw`, `Scoreboard.Draw`, and `Perf.Draw` → filters redundant Unity IMGUI event passes (`Layout`, `MouseMove`, etc.).
+- `[HarmonyTranspiler]` on `SoldierView.LateUpdateInner` & `[HarmonyPrefix]` on `VoxelDebris.Awake` → configurable health-bar cull distance and debris pool limits.
+- Config: `BepInEx/config/xano.trenchwar.performance.cfg`.
 
 ---
 
