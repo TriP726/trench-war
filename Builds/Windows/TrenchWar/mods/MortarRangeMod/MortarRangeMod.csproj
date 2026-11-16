@@ -17,31 +17,31 @@
 
   <ItemGroup>
     <Reference Include="BepInEx.Core">
-      <HintPath>..\bep\BepInEx\core\BepInEx.Core.dll</HintPath>
+      <HintPath>..\..\BepInEx\core\BepInEx.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="BepInEx.Unity.Common">
-      <HintPath>..\bep\BepInEx\core\BepInEx.Unity.Common.dll</HintPath>
+      <HintPath>..\..\BepInEx\core\BepInEx.Unity.Common.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="BepInEx.Unity.Mono">
-      <HintPath>..\bep\BepInEx\core\BepInEx.Unity.Mono.dll</HintPath>
+      <HintPath>..\..\BepInEx\core\BepInEx.Unity.Mono.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="0Harmony">
-      <HintPath>..\bep\BepInEx\core\0Harmony.dll</HintPath>
+      <HintPath>..\..\BepInEx\core\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\refs\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\TrenchWar_Data\Managed\UnityEngine.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\refs\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>..\..\TrenchWar_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\TrenchWar_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
