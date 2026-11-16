@@ -1,0 +1,21 @@
+[Error  :   BepInEx] Unable to start Unity log writer
+[Message: Preloader] BepInEx 6.0.0-be.793 - TrenchWar (11/14/2026 11:05:05 PM)
+[Message: Preloader] Built from commit dbc82f05b8ea34833de5b6a723eb60dd8398e0b1
+[Info   :   BepInEx] System platform: Windows 10 64-bit
+[Info   :   BepInEx] Process bitness: 64-bit (x64)
+[Info   : Preloader] Running under Unity 6000.4.9f1
+[Info   : Preloader] CLR runtime version: 4.0.30319.42000
+[Info   : Preloader] Supports SRE: True
+[Message: Preloader] Preloader started
+[Info   :AssemblyPatcher] Loaded 1 patcher type from [BepInEx.Unity.Mono.Preloader 6.0.0.0]
+[Info   : Preloader] 1 patcher plugin loaded
+[Info   : Preloader] 154 assemblies discovered
+[Message:AssemblyPatcher] Executing 1 patch(es)
+[Message: Preloader] Preloader finished
+[Message:   BepInEx] Chainloader initialized
+[Info   :   BepInEx] 2 plugins to load
+[Info   :   BepInEx] Loading [Mortar Range Per Nation 1.0.0]
+[Info   :Mortar Range Per Nation] Mortar Range Per Nation loaded (Germany x1, ... Japan x1).
+[Info   :   BepInEx] Loading [Trench War Sandbox 1.0.0]
+[Info   :Trench War Sandbox] Sandbox mod loaded.
+[Message:   BepInEx] Chainloader startup complete
