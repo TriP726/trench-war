@@ -12,6 +12,8 @@ lorries rolling and watch every shell tear the ground apart.
 
 **Windows 64-bit — `TrenchWar-Windows.zip` (66 MB)**
 
+- **Download on GitHub (v1.0.0):** https://github.com/TriP726/trench-war/releases/tag/v1.0.0
+  - Direct: https://github.com/TriP726/trench-war/releases/download/v1.0.0/TrenchWar-Windows.zip
 - **Download on itch.io:** https://xanomusik.itch.io/trench-war
 - Unzip and run `TrenchWar.exe` — no install needed.
 
